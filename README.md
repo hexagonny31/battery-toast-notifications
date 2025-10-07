@@ -1,7 +1,7 @@
 # battery-toast-notifications
 A simple VBScript that deploys a toast notification for your battery levels.<br><br>
 Before running this script, you need a powershell module called "BurntToast".<br>
-If you don't have this module yet, visit it's official website: 'https://github.com/Windos/BurntToast'<br>
+If you don't have this module yet, visit its official github repository: 'https://github.com/Windos/BurntToast'<br>
 or directly run this install command in powershell(ran by administrator): 'Install-Module -Name BurntToast'
 
 ### To automatically run at start up
