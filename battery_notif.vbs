@@ -14,54 +14,48 @@ set fso = CreateObject("Scripting.FileSystemObject")
 oScriptPath = fso.GetParentFolderName(WScript.ScriptFullName)
 sIcon = oScriptPath & "\Power.ico"
 
-dim bWarnVeryLow, bWarnLow, bWarnAlmostFull, bWarnFull ' Warning booleans - "to avoid constant pop-ups."
-bWarnVeryLow 		= false
-bWarnLow 				= false
-bWarnAlmostFull = false
-bWarnFull 			= false
+dim bWarnLow, bWarnAlmostFull, bWasCharging ' Warning booleans - "to avoid constant pop-ups."
+bWarnLow 				 = false
+bWarnAlmostFull  = false
+bWasCharging		 = false
 while(true)
 	set oResults = oServices.ExecQuery("select * from batterystatus")
 	for each oResult in oResults
 		iRemaining = oResult.RemainingCapacity
 		bCharging = oResult.Charging
 	next
-	iPercent = ((iRemaining / iFull) * 100) mod 100
-	if bCharging and (iPercent >= 100) and (not bWarnFull)  then
-		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
-							 "$Settings = New-BTButton -Content 'Open Settings' -Arguments 'ms-settings:batterysaver' ; " & _
-							 "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at full capcity!', 'Unplug your device to avoid complications!' " & _
-							 "-AppLogo '" & sIcon & "'" & _
-							 "-Button $Settings""", 0, True
-		bWarnVeryLow 		= false
+	if bCharging <> bWasCharging then
 		bWarnLow 				= false
 		bWarnAlmostFull = false
-		bWarnFull 			= true
-	elseif bCharging and (iPercent >= 95) and (not bWarnAlmostFull) then
+		bWasCharging = bCharging
+	end if
+	iPercent = int((iRemaining / iFull) * 100)
+	if (not bCharging) and (iPercent <= 10) then
 		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
-							 "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at " & Int(iPercent) & "%' " & _
-							 "-AppLogo '" & sIcon & "'""", 0, True
-	  bWarnVeryLow 		= false
+							 "$Settings = New-BTButton -Content 'Open Settings' -Arguments 'ms-settings:batterysaver' ; " & _
+							 "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is critically low!', 'Hibernate your device to avoid complications.' " & _
+							 "-AppLogo '" & sIcon & "' -Button $Settings""", 0, True
 		bWarnLow 				= false
-		bWarnAlmostFull = true
-		bWarnFull 			= false
+		bWarnAlmostFull = false
 	elseif (not bCharging) and (iPercent <= 25) and (not bWarnLow) then
 		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
 							 "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at " & Int(iPercent) & "%' " & _
 							 "-AppLogo '" & sIcon & "'""", 0, True
-		bWarnVeryLow 		= false
 		bWarnLow 				= true
 		bWarnAlmostFull = false
-		bWarnFull 			= false
-	elseif (not bCharging) and (iPercent <= 10) and (not bWarnVeryLow) then
+	elseif bCharging and (iPercent >= 99)  then
 		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
 							 "$Settings = New-BTButton -Content 'Open Settings' -Arguments 'ms-settings:batterysaver' ; " & _
-							 "new-BurntToastNotification -Text 'Battery Monitor', 'Batter is critacally low!', 'Hibernate your device to avoid complications.' " & _
-							 "-AppLogo '" & sIcon & "'" & _
-							 "-Button $Settings""", 0, True
-		bWarnVeryLow 		= true
+							 "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at full capacity!', 'Unplug your device to avoid complications!' " & _
+							 "-AppLogo '" & sIcon & "' -Button $Settings""", 0, True
 		bWarnLow 				= false
 		bWarnAlmostFull = false
-		bWarnFull 			= false
+	elseif bCharging and (iPercent >= 95) and (not bWarnAlmostFull) then
+		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
+							 "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at " & Int(iPercent) & "%' " & _
+							 "-AppLogo '" & sIcon & "'""", 0, True
+		bWarnLow 				= false
+		bWarnAlmostFull = true
 	end if
 	wscript.sleep 180000 ' 3 minutes
 wend
