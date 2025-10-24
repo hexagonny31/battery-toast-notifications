@@ -12,15 +12,29 @@ next
 set oShell = CreateObject("WScript.Shell")
 set fso = CreateObject("Scripting.FileSystemObject")
 oScriptPath = fso.GetParentFolderName(WScript.ScriptFullName)
+sReportPath = oScriptPath & "\battery-report.html"
 sIcon = oScriptPath & "\Power.ico"
 
-dim bWarnLow, bWarnAlmostFull, bWasCharging ' Warning booleans - "to avoid constant pop-ups."
-bWarnLow = false
+function ShowToast(arrLines)
+	sPrompt = ""
+    for i = 0 to ubound(arrLines)
+    	if i > 0 then sPrompt = sPrompt & ", "
+		sPrompt = sPrompt & "'" & arrLines(i) & "'"
+	next
+
+    oShell.run "powershell -Command ""Try {Import-Module BurntToast -ErrorAct Stop} Catch {} ; " & _
+    "$Settings = New-BTButton -Content 'Settings' -Arguments 'ms-settings:batterysaver' ; " & _
+    "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "' ; " & _
+    "new-BurntToastNotification -Text " & sPrompt & _
+    " -AppLogo '" & sIcon & "' -Button $Settings, $Report""", 0, true
+end function
+
+bWarnLow = false        ' Warning booleans - "to avoid constant pop-ups."
 bWarnAlmostFull = false
 bWarnFull = false
 bWasCharging = false
 while(true)
-	oShell.Run "powershell -Command ""powercfg /batteryreport /output '" & sReportPath & "';"""
+	oShell.Run "powershell -Command ""powercfg /batteryreport /output '" & sReportPath & "';""", 0, false
 	set oResults = oServices.ExecQuery("select * from batterystatus")
 	for each oResult in oResults
 		iRemaining = oResult.RemainingCapacity
@@ -34,31 +48,22 @@ while(true)
 		bWasCharging = bCharging
 	end if
 	iPercent = int((iRemaining / iFull) * 100)
+	arrPrompts = empty
 	if (not bCharging) and (iPercent <= 10) then
-		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
-		           "$Settings = New-BTButton -Content 'Open Settings' -Arguments 'ms-settings:batterysaver' ; " & _
-		           "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "'; " & _
-		           "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is critically low!', 'Hibernate your device to avoid complications.' " & _
-		           "-AppLogo '" & sIcon & "' -Button $Settings, $Report""", 0, true
+		arrPrompts = array("Battery Monitor", "Battery is critically low!", "Hibernate your device to avoid complications.")
 	elseif (not bCharging) and (iPercent <= 25) and (not bWarnLow) then
-		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
-		           "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "'; " & _
-		           "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at " & iPercent & "%' " & _
-		           "-AppLogo '" & sIcon & "' -Button $Report""", 0, true
+		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%")
 		bWarnLow = true
 	elseif (bCharging or bPowerOnline) and (iPercent >= 100) and (not bWarnFull) then
-		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
-		           "$Settings = New-BTButton -Content 'Open Settings' -Arguments 'ms-settings:batterysaver' ; " & _
-		           "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "'; " & _
-		           "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at full capacity!', 'Your device is now using AC power.' " & _
-		           "-AppLogo '" & sIcon & "' -Button $Settings, $Report""", 0, true
+		arrPrompts = array("Battery Monitor", "Battery is at full capacity!", "Your device is now using AC power.")
 		bWarnFull = true
 	elseif bCharging and (iPercent >= 95) and (not bWarnAlmostFull) then
-		oShell.Run "powershell -Command ""Try {Import-Module BurntToast -ErrorAction Stop} Catch {} ; " & _
-		           "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "'; " & _
-		           "new-BurntToastNotification -Text 'Battery Monitor', 'Battery is at " & iPercent & "%' " & _
-		           "-AppLogo '" & sIcon & "' -Button $Report""", 0, true
+		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%")
 		bWarnAlmostFull = true
+	end if
+    
+	if isarray(arrPrompts) then
+		showtoast arrPrompts
 	end if
 	wscript.sleep 180000 ' 3 minutes
 wend
