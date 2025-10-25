@@ -6,7 +6,7 @@ set oLocator = CreateObject("WbemScripting.SWbemLocator")
 set oServices = oLocator.ConnectServer(".","root\wmi")
 set oResults = oServices.ExecQuery("select * from batteryfullchargedcapacity")
 for each oResult in oResults
-  iFull = oResult.FullChargedCapacity
+	iFull = oResult.FullChargedCapacity
 next
 
 set oShell = CreateObject("WScript.Shell")
@@ -17,16 +17,16 @@ sIcon = oScriptPath & "\Power.ico"
 
 function ShowToast(arrLines)
 	sPrompt = ""
-    for i = 0 to ubound(arrLines)
-    	if i > 0 then sPrompt = sPrompt & ", "
+	for i = 0 to ubound(arrLines)
+		if i > 0 then sPrompt = sPrompt & ", "
 		sPrompt = sPrompt & "'" & arrLines(i) & "'"
 	next
 
-    oShell.run "powershell -Command ""Try {Import-Module BurntToast -ErrorAct Stop} Catch {} ; " & _
-    "$Settings = New-BTButton -Content 'Settings' -Arguments 'ms-settings:batterysaver' ; " & _
-    "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "' ; " & _
-    "new-BurntToastNotification -Text " & sPrompt & _
-    " -AppLogo '" & sIcon & "' -Button $Settings, $Report""", 0, true
+	oShell.run "powershell -Command ""Try {Import-Module BurntToast -ErrorAct Stop} Catch {} ; " & _
+	           "$Settings = New-BTButton -Content 'Settings' -Arguments 'ms-settings:batterysaver' ; " & _
+	           "$Report = New-BTButton -Content 'Open Report' -Arguments '" & sReportPath & "' ; " & _
+	           "new-BurntToastNotification -Text " & sPrompt & _
+	           " -AppLogo '" & sIcon & "' -Button $Settings, $Report""", 0, true
 end function
 
 bWarnLow = false        ' Warning booleans - "to avoid constant pop-ups."
@@ -61,7 +61,7 @@ while(true)
 		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%")
 		bWarnAlmostFull = true
 	end if
-    
+
 	if isarray(arrPrompts) then
 		showtoast arrPrompts
 	end if
