@@ -15,6 +15,17 @@ oScriptPath = fso.GetParentFolderName(WScript.ScriptFullName)
 sReportPath = oScriptPath & "\battery-report.html"
 sIcon = oScriptPath & "\Power.ico"
 
+function ConvertTime(dTime)
+    if dTime = 0 then ConvertTime = "null"
+    if dTime < 1 then
+        dTime = dTime * 60
+        sTime = formatnumber(dTime, 0) & " minutes"
+    else
+        sTime = formatnumber(dTime, 2) & " hours"
+    end if
+    ConvertTime = sTime
+end function
+
 function ShowToast(arrLines)
 	sPrompt = ""
 	for i = 0 to ubound(arrLines)
@@ -40,25 +51,34 @@ while(true)
 		iRemaining = oResult.RemainingCapacity
 		bCharging = oResult.Charging
 		bPowerOnline = oResult.PowerOnline
+		iDischargeRate = oResult.DischargeRate
+		iChargeRate = oResult.ChargeRate
 	next
-	if bCharging <> bWasCharging then
+
+	if bCharging <> bWasCharging then ' Checks if the charging state changed.
 		bWarnLow = false
 		bWarnAlmostFull = false
 		bWarnFull = false
 		bWasCharging = bCharging
 	end if
+
+	dTimeRemain = 0
+	if iDischargeRate <> 0 then dTimeRemain = iRemaining / iDischargeRate
+	if iChargeRate <> 0 then dTimeRemain = (iFull - iRemaining) / iChargeRate
+	sTimeRemain = converttime(dTimeRemain)
+
 	iPercent = int((iRemaining / iFull) * 100)
 	arrPrompts = empty
 	if (not bCharging) and (iPercent <= 10) then
 		arrPrompts = array("Battery Monitor", "Battery is critically low!", "Hibernate your device to avoid complications.")
 	elseif (not bCharging) and (iPercent <= 25) and (not bWarnLow) then
-		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%")
+		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%", dTimeRemain & " until full.")
 		bWarnLow = true
 	elseif (bCharging or bPowerOnline) and (iPercent >= 100) and (not bWarnFull) then
 		arrPrompts = array("Battery Monitor", "Battery is at full capacity!", "Your device is now using AC power.")
 		bWarnFull = true
 	elseif bCharging and (iPercent >= 95) and (not bWarnAlmostFull) then
-		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%")
+		arrPrompts = array("Battery Monitor", "Battery is at " & iPercent & "%", dTimeRemain & " remaining.")
 		bWarnAlmostFull = true
 	end if
 
