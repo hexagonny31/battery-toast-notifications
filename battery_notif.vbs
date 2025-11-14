@@ -16,8 +16,9 @@ sReportPath = oScriptPath & "\battery-report.html"
 sIcon = oScriptPath & "\Power.ico"
 
 function ConvertTime(dTime)
-    if dTime = 0 then ConvertTime = "null"
-    if dTime < 1 then
+    if dTime = 0 then
+        sTime = "null"
+    elseif dTime < 1 then
         dTime = dTime * 60
         sTime = formatnumber(dTime, 0) & " minutes"
     else
